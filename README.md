@@ -61,11 +61,11 @@ python main.py
 
 ## ⚙️ Technical Details
 **Cryptography Specifications**
-Component	Implementation	Security Level
-Hash Algorithm	SHA-256	Military-grade
-Encryption	AES-256-CBC	NSA-approved
-Key Derivation	PBKDF2HMAC-SHA256	100,000 iters
-Salt Generation	os.urandom(16)	Cryptographically secure
+|Component|	|Implementation|	|Security Level|
+|Hash Algorithm|	|SHA-256|	|Military-grade|
+|Encryption|	|AES-256-CBC|	|NSA-approved|
+|Key Derivation|	|PBKDF2HMAC-SHA256|	|100,000 iters|
+|Salt Generation|	|os.urandom(16)|	|Cryptographically secure|
 
 ### Performance Characteristics
 # Benchmark results (1MB file)
