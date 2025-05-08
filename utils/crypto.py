@@ -13,23 +13,40 @@ def generate_key(password: str, salt: bytes) -> bytes:
     )
     return base64.urlsafe_b64encode(kdf.derive(password.encode()))
 
+import os
+import base64
+from cryptography.fernet import Fernet
+from cryptography.hazmat.primitives import hashes
+from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
+
 def encrypt_file(file_path, password):
+    """Encrypt file and automatically create encrypted/ directory"""
     try:
+        # 1. Create directory if it doesn't exist
+        encrypted_dir = "encrypted"
+        os.makedirs(encrypted_dir, exist_ok=True)
+        
+        # 2. Generate fresh random salt
         salt = os.urandom(16)
+        
+        # 3. Generate encryption key
         key = generate_key(password, salt)
         fernet = Fernet(key)
         
+        # 4. Read and encrypt file
         with open(file_path, "rb") as f:
             data = f.read()
-            
         encrypted_data = fernet.encrypt(data)
-        output_path = f"encrypted/{os.path.basename(file_path)}.enc"
-        os.makedirs("encrypted", exist_ok=True)
         
+        # 5. Create output path
+        filename = os.path.basename(file_path)
+        output_path = os.path.join(encrypted_dir, f"{filename}.enc")
+        
+        # 6. Write to file
         with open(output_path, "wb") as f:
             f.write(salt + encrypted_data)
-            
-        print(f"✅ File encrypted to {output_path}")
+        
+        print(f"✅ Success! Encrypted file created at:\n{os.path.abspath(output_path)}")
         return output_path
         
     except Exception as e:
