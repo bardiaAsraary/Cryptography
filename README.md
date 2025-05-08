@@ -48,25 +48,35 @@ python main.py
 ## 📂 File Structure
 .
 ├── main.py                 # Main application entry point
+
 ├── utils/
+
 │   ├── __init__.py         # Package initialization
+
 │   ├── crypto.py           # AES encryption/decryption
+
 │   ├── hashing.py          # SHA256/MD5 implementations
+
 │   └── helpers.py          # Password validation utilities
+
 ├── tests/                  # Test files directory
+
 │   └── sample.txt          # Example test file
+
 ├── encrypted/              # Auto-generated encrypted files
+
 ├── decrypted/              # Auto-generated decrypted files
+
 └── requirements.txt        # Dependency specifications
 
 ## ⚙️ Technical Details
 **Cryptography Specifications**
-|Component      |	|Implementation   |	|Security Level          |
-|---------------|	|-----------------|	|------------------------|
-|Hash Algorithm |	|SHA-256          |	|Military-grade          |
-|Encryption     |	|AES-256-CBC      |	|NSA-approved            |
-|Key Derivation |	|PBKDF2HMAC-SHA256|	|100,000 iters           |
-|Salt Generation|	|os.urandom(16)   |	|Cryptographically secure|
+| Component          | Implementation           | Security Level          |
+|--------------------|--------------------------|-------------------------|
+| Hash Algorithm     | SHA-256                  | Military-grade          |
+| Encryption         | AES-256-CBC              | NSA-approved            |
+| Key Derivation     | PBKDF2HMAC-SHA256        | 100,000 iterations      |
+| Salt Generation    | `os.urandom(16)`         | Cryptographically secure|
 
 ### Performance Characteristics
 # Benchmark results (1MB file)
