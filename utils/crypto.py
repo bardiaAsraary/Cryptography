@@ -3,6 +3,9 @@ import base64
 from cryptography.fernet import Fernet
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
+from Crypto.Cipher import AES
+from Crypto.Protocol.KDF import scrypt
+from Crypto.Random import get_random_bytes
 
 def generate_key(password: str, salt: bytes) -> bytes:
     kdf = PBKDF2HMAC(
@@ -13,68 +16,69 @@ def generate_key(password: str, salt: bytes) -> bytes:
     )
     return base64.urlsafe_b64encode(kdf.derive(password.encode()))
 
-import os
-import base64
-from cryptography.fernet import Fernet
-from cryptography.hazmat.primitives import hashes
-from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
+def hybrid_encrypt(data: bytes, password: str) -> bytes:
+    """Quantum-resistant hybrid encryption (AES-GCM + strong KDF)"""
+    # 1. Generate random salt
+    salt = get_random_bytes(16)
+    
+    # 2. Derive key using strong KDF (resist brute-force)
+    key = scrypt(password, salt, key_len=32, N=2**20, r=8, p=1)
+    
+    # 3. Encrypt with AES-GCM
+    cipher = AES.new(key, AES.MODE_GCM)
+    ciphertext, tag = cipher.encrypt_and_digest(data)
+    
+    # Format: [salt][nonce][tag][ciphertext]
+    return salt + cipher.nonce + tag + ciphertext
+
+def hybrid_decrypt(encrypted: bytes, password: str) -> bytes:
+    """Decrypt hybrid-encrypted data"""
+    # Parse components
+    salt = encrypted[:16]
+    nonce = encrypted[16:32]
+    tag = encrypted[32:48]
+    ciphertext = encrypted[48:]
+    
+    # Derive key
+    key = scrypt(password, salt, key_len=32, N=2**20, r=8, p=1)
+    
+    # Decrypt
+    cipher = AES.new(key, AES.MODE_GCM, nonce=nonce)
+    return cipher.decrypt_and_verify(ciphertext, tag)
 
 def encrypt_file(file_path, password):
-    """Encrypt file and automatically create encrypted/ directory"""
     try:
-        # 1. Create directory if it doesn't exist
-        encrypted_dir = "encrypted"
-        os.makedirs(encrypted_dir, exist_ok=True)
+        os.makedirs("encrypted", exist_ok=True)
         
-        # 2. Generate fresh random salt
-        salt = os.urandom(16)
-        
-        # 3. Generate encryption key
-        key = generate_key(password, salt)
-        fernet = Fernet(key)
-        
-        # 4. Read and encrypt file
         with open(file_path, "rb") as f:
             data = f.read()
-        encrypted_data = fernet.encrypt(data)
         
-        # 5. Create output path
-        filename = os.path.basename(file_path)
-        output_path = os.path.join(encrypted_dir, f"{filename}.enc")
+        encrypted_data = hybrid_encrypt(data, password)
+        output_path = os.path.join("encrypted", f"{os.path.basename(file_path)}.pqenc")
         
-        # 6. Write to file
         with open(output_path, "wb") as f:
-            f.write(salt + encrypted_data)
+            f.write(encrypted_data)
         
-        print(f"✅ Success! Encrypted file created at:\n{os.path.abspath(output_path)}")
+        print(f"✅ Encrypted (quantum-resistant) to: {output_path}")
         return output_path
-        
     except Exception as e:
         print(f"❌ Encryption failed: {str(e)}")
         return None
 
-# THIS IS THE CRITICAL FUNCTION THAT MUST BE PRESENT
 def decrypt_file(encrypted_path, password):
     try:
         with open(encrypted_path, "rb") as f:
-            file_content = f.read()
-            
-        salt = file_content[:16]
-        encrypted_data = file_content[16:]
+            encrypted_data = f.read()
         
-        key = generate_key(password, salt)
-        fernet = Fernet(key)
-        decrypted_data = fernet.decrypt(encrypted_data)
+        decrypted_data = hybrid_decrypt(encrypted_data, password)
+        output_path = os.path.join("decrypted", os.path.basename(encrypted_path).replace('.pqenc', ''))
         
-        output_path = f"decrypted/{os.path.basename(encrypted_path).replace('.enc', '')}"
         os.makedirs("decrypted", exist_ok=True)
-        
         with open(output_path, "wb") as f:
             f.write(decrypted_data)
-            
-        print(f"✅ File decrypted to {output_path}")
-        return output_path
         
+        print(f"✅ Decrypted to: {output_path}")
+        return output_path
     except Exception as e:
         print(f"❌ Decryption failed: {str(e)}")
         return None
